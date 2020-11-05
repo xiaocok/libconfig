@@ -1,12 +1,10 @@
 package libconfig
 
 import (
-	"fmt"
 	"testing"
-	"time"
 )
 
-func TestGetStringConcurrent(t *testing.T) {
+/*func TestGetStringConcurrent(t *testing.T) {
 	const concurrency = 4
 	data := []byte(largeFixture)
 
@@ -60,7 +58,7 @@ func TestGetBytesConcurrent(t *testing.T) {
 			}
 		}
 	}
-}
+}*/
 
 func TestGetString(t *testing.T) {
 	data := []byte(`{"foo":"bar", "baz": 1234}`)

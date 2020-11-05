@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func BenchmarkValidate(b *testing.B) {
+/*func BenchmarkValidate(b *testing.B) {
 	b.Run("small", func(b *testing.B) {
 		benchmarkValidate(b, smallFixture)
 	})
@@ -25,7 +25,7 @@ func BenchmarkValidate(b *testing.B) {
 	b.Run("twitter", func(b *testing.B) {
 		benchmarkValidate(b, twitterFixture)
 	})
-}
+}*/
 
 func benchmarkValidate(b *testing.B, s string) {
 	b.Run("stdjson", func(b *testing.B) {

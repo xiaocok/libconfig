@@ -1,8 +1,9 @@
 package libconfig
 
 import (
-	"github.com/gitteamer/libconfig/fastfloat"
 	"fmt"
+	"github.com/gitteamer/libconfig/fastfloat"
+	"math/big"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -31,7 +32,8 @@ func (p *Parser) Parse(s string) (*Value, error) {
 	// Add root node
 	s = "{" + s + "};"
 
-	s = skipWS(s)
+	//s = skipWS(s)
+	s = skipJunk(s)
 	p.b = append(p.b[:0], s...)
 	p.c.reset()
 
@@ -39,9 +41,10 @@ func (p *Parser) Parse(s string) (*Value, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse JSON: %s; unparsed tail: %q", err, startEndString(tail))
 	}
-	tail = skipWS(tail)
+	//tail = skipWS(tail)
+	tail = skipJunk(tail)
 	tail = strings.TrimSpace(tail)
-	if /*len(tail) > 0*/len(tail) != 1 && tail[0] != ';' {
+	if /*len(tail) > 0*/ len(tail) != 1 && tail[0] != ';' {
 		return nil, fmt.Errorf("unexpected tail: %q", startEndString(tail))
 	}
 
@@ -84,10 +87,10 @@ func skipWS(s string) string {
 }
 
 func skipWSSlow(s string) string {
-	//0x20 space 空格
-	//0x0A LF    换行
-	//0x09 HT    横向列表
-	//0x0D CR    回车
+	//0x20 space
+	//0x0A LF    \n	line break
+	//0x09 HT    horizontal list
+	//0x0D CR    \r	enter
 	if len(s) == 0 || s[0] != 0x20 && s[0] != 0x0A && s[0] != 0x09 && s[0] != 0x0D {
 		return s
 	}
@@ -99,12 +102,69 @@ func skipWSSlow(s string) string {
 	return ""
 }
 
+func skipJunk(s string) string {
+	s = skipWS(s)
+	s = skipComment(s)
+	s = skipWS(s)
+	return s
+}
+
+func skipComment(s string) string {
+startSkip:
+	s = skipWS(s)
+	if s[0] == '#' {
+		for i := 1; i < len(s); i++ {
+			if s[i] == 0x0A {
+				s = s[i+1:]
+				goto startSkip
+			}
+		}
+	}
+	if len(s) > 2 && s[0:2] == "//" {
+		for i := 1; i < len(s); i++ {
+			if s[i] == 0x0A {
+				s = s[i+1:]
+				goto startSkip
+			}
+		}
+	}
+	if len(s) > 2 && s[0:2] == "/*" {
+		for len(s)-1 > 0 {
+			if s[0:2] == "*/" {
+				s = s[2:]
+				goto startSkip
+			} else {
+				s = s[1:]
+			}
+		}
+		if len(s) == 0 {
+			fmt.Println("missing */")
+			return s
+		}
+	}
+
+	return s
+}
+
+//func removeAnnotation(s string) (string, error) {
+//	s = skipWS(s)
+//	for len(s)-1 > 0 {
+//		end := s[0:2]
+//		if end == "*/" {
+//			return s[2:], nil
+//		}
+//		s = s[1:]
+//	}
+//
+//	return s, fmt.Errorf("missing */")
+//}
+
 type kv struct {
 	k string
 	v *Value
 }
 
-func isEnd(s string, spec string) (bool, string) {
+/*func isEnd(s string, spec string) (bool, string) {
 	if s[0] == spec[0] {
 		s = skipWS(s)
 		if len(s) == 0 {
@@ -124,7 +184,7 @@ func isObjectEnd(s string) (bool, string) {
 
 func isArrayEnd(s string) (bool, string) {
 	return isEnd(s, "]")
-}
+}*/
 
 // MaxDepth is the maximum depth for nested JSON.
 const MaxDepth = 300
@@ -187,13 +247,13 @@ func parseValue(s string, c *cache, depth int) (*Value, string, error) {
 		}
 		return valueNull, s[len("null"):], nil
 	}
-	if s[0:2] == "/*" {
+	/*if s[0:2] == "/*" {
 		tail, err := removeAnnotation(s)
 		if err != nil {
 			return nil, tail, fmt.Errorf("cannot remove annotation: %s", err)
 		}
 		s = tail
-	}
+	}*/
 
 	ns, tail, err := parseRawNumber(s)
 	if err != nil {
@@ -206,18 +266,19 @@ func parseValue(s string, c *cache, depth int) (*Value, string, error) {
 }
 
 func parseArray(s string, c *cache, depth int) (*Value, string, error) {
-	s = skipWS(s)
+	//s = skipWS(s)
+	s = skipJunk(s)
 	if len(s) == 0 {
 		return nil, s, fmt.Errorf("missing ']'")
 	}
 
-	if s[0:2] == "/*" {
+	/*if s[0:2] == "/*" {
 		tail, err := removeAnnotation(s)
 		if err != nil {
 			return nil, tail, fmt.Errorf("cannot remove annotation: %s", err)
 		}
 		s = tail
-	}
+	}*/
 
 	if s[0] == ']' || s[0] == ')' {
 		s = s[1:]
@@ -238,14 +299,16 @@ func parseArray(s string, c *cache, depth int) (*Value, string, error) {
 		var v *Value
 		var err error
 
-		s = skipWS(s)
-		v, s, err =  parseValue(s, c, depth)
+		//s = skipWS(s)
+		s = skipJunk(s)
+		v, s, err = parseValue(s, c, depth)
 		if err != nil {
 			return nil, s, fmt.Errorf("cannot parse array value: %s", err)
 		}
 		a.a = append(a.a, v)
 
-		s = skipWS(s)
+		//s = skipWS(s)
+		s = skipJunk(s)
 		if len(s) == 0 {
 			return nil, s, fmt.Errorf("unexpected end of array")
 		}
@@ -262,14 +325,16 @@ func parseArray(s string, c *cache, depth int) (*Value, string, error) {
 }
 
 func parseObject(s string, c *cache, depth int) (*Value, string, error) {
-	s = skipWS(s)
+	//s = skipWS(s)
+	s = skipJunk(s)
 	if len(s) == 0 {
 		return nil, s, fmt.Errorf("missing };")
 	}
 
 	if s[0] == '}' { // };
 		s = s[1:]
-		s = skipWS(s)
+		//s = skipWS(s)
+		s = skipJunk(s)
 		if s[0] != ';' {
 			return nil, s, fmt.Errorf("missing ;")
 		}
@@ -287,7 +352,8 @@ func parseObject(s string, c *cache, depth int) (*Value, string, error) {
 		kv := o.o.getKV()
 
 		// Parse key.
-		s = skipWS(s)
+		//s = skipWS(s)
+		s = skipJunk(s)
 		/*if len(s) == 0 || s[0] != '"' {
 			return nil, s, fmt.Errorf(`cannot find opening '"" for object key`)
 		}*/
@@ -295,29 +361,34 @@ func parseObject(s string, c *cache, depth int) (*Value, string, error) {
 		if err != nil {
 			return nil, s, fmt.Errorf("cannot parse object key: %s", err)
 		}
-		s = skipWS(s)
+		//s = skipWS(s)
+		s = skipJunk(s)
 		if len(s) == 0 || (s[0] != ':' && s[0] != '=') {
 			return nil, s, fmt.Errorf("missing ':' or '=' after object key")
 		}
 		s = s[1:]
 
 		// Parse value
-		s = skipWS(s)
+		//s = skipWS(s)
+		s = skipJunk(s)
 		kv.v, s, err = parseValue(s, c, depth)
 		if err != nil {
 			return nil, s, fmt.Errorf("cannot parse object value: %s", err)
 		}
-		s = skipWS(s)
+		//s = skipWS(s)
+		s = skipJunk(s)
 		if len(s) == 0 {
 			return nil, s, fmt.Errorf("unexpected end of object")
 		}
 		if s[0] == ';' { // ;}
 			s = s[1:]
-			s = skipWS(s)
+			//s = skipWS(s)
+			s = skipJunk(s)
 
 			if s[0] == '}' {
 				s = s[1:]
-				s = skipWS(s)
+				//s = skipWS(s)
+				s = skipJunk(s)
 				return o, s, nil
 			}
 
@@ -328,23 +399,6 @@ func parseObject(s string, c *cache, depth int) (*Value, string, error) {
 		}*/
 		return nil, s, fmt.Errorf("missing ';' after object value")
 	}
-}
-
-/*func skipComment(s string) (string, error) {
-
-}*/
-
-func removeAnnotation(s string) (string, error) {
-	s = skipWS(s)
-	for len(s)-1 > 0 {
-		end := s[0:2]
-		if end == "*/" {
-			return s[2:], nil
-		}
-		s = s[1:]
-	}
-
-	return s, fmt.Errorf("missing */")
 }
 
 func escapeString(dst []byte, s string) []byte {
@@ -874,12 +928,58 @@ func (v *Value) GetInt(keys ...string) int {
 	if v == nil || v.Type() != TypeNumber {
 		return 0
 	}
+
+	//Hexadecimal data
+	if len(v.s) > 2 && (v.s[0:2] == "0x" || v.s[0:2] == "0X") {
+		return hex2dec(v.s[2:])
+	}
+
 	n := fastfloat.ParseInt64BestEffort(v.s)
 	nn := int(n)
 	if int64(nn) != n {
 		return 0
 	}
 	return nn
+}
+
+func (v *Value) GetHex(keys ...string) string {
+	v = v.Get(keys...)
+	if v == nil || v.Type() != TypeNumber {
+		return ""
+	}
+
+	if len(v.s) > 2 && (v.s[0:2] == "0x" || v.s[0:2] == "0X") {
+		return v.s
+	} else {
+		n := fastfloat.ParseInt64BestEffort(v.s)
+		nn := int(n)
+		if int64(nn) != n {
+			return ""
+		}
+		return dec2hex(nn)
+	}
+}
+
+func (v *Value) GetBigint(keys ...string) *big.Int {
+	v = v.Get(keys...)
+	if v == nil || v.Type() != TypeNumber {
+		return big.NewInt(0)
+	}
+
+	l := len(v.s)
+	n := ""
+	if v.s[l-1:l] == "L" {
+		n = v.s[:l-1]
+	} else {
+		n = v.s
+	}
+
+	value, ok := big.NewInt(0).SetString(n, 10)
+	if !ok {
+		return big.NewInt(0)
+	}
+
+	return value
 }
 
 // GetUint returns uint value by the given keys path.

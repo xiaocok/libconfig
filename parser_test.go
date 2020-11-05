@@ -524,7 +524,7 @@ func TestValueGet(t *testing.T) {
 
 	pp.Put(p)
 }
-
+/*
 func TestParserParse(t *testing.T) {
 	var p Parser
 
@@ -1197,7 +1197,7 @@ func TestParserParse(t *testing.T) {
 
 	})
 }
-
+*/
 func TestParseBigObject(t *testing.T) {
 	const itemsCount = 10000
 

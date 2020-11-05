@@ -1,5 +1,7 @@
 package libconfig
 
+import "math/big"
+
 var handyPool ParserPool
 
 // GetString returns string value for the field identified by keys path
@@ -66,6 +68,30 @@ func GetInt(data []byte, keys ...string) int {
 		return 0
 	}
 	n := v.GetInt(keys...)
+	handyPool.Put(p)
+	return n
+}
+
+func GetHex(data []byte, keys ...string) string {
+	p := handyPool.Get()
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		handyPool.Put(p)
+		return ""
+	}
+	n := v.GetHex(keys...)
+	handyPool.Put(p)
+	return n
+}
+
+func GetBigint(data []byte, keys ...string) *big.Int {
+	p := handyPool.Get()
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		handyPool.Put(p)
+		return big.NewInt(0)
+	}
+	n := v.GetBigint(keys...)
 	handyPool.Put(p)
 	return n
 }

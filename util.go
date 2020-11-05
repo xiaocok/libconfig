@@ -1,7 +1,9 @@
 package libconfig
 
 import (
+	"fmt"
 	"reflect"
+	"strconv"
 	"unsafe"
 )
 
@@ -27,4 +29,16 @@ func startEndString(s string) string {
 	start := s[:40]
 	end := s[len(s)-40:]
 	return start + "..." + end
+}
+
+func hex2dec(val string) int {
+	n, err := strconv.ParseUint(val, 16, 32)
+	if err != nil {
+		return 0
+	}
+	return int(n)
+}
+
+func dec2hex(n int) string {
+	return fmt.Sprintf("0x%X", n)
 }
