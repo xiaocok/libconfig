@@ -6,8 +6,7 @@ import (
 	"io/ioutil"
 )
 
-func ExampleGetString() {
-
+func ExampleParseBytes() {
 	data, err := ioutil.ReadFile("testdata/demo.cfg")
 	if err != nil {
 		fmt.Println("read config file error:", err.Error())
@@ -101,6 +100,10 @@ func ExampleGetString() {
 	// misc_columns_2 = MI
 	// misc_bitmask = 8131
 	// misc_bitmask_hex = 0x1FC3
+}
+
+func ExampleGetString() {
+
 }
 
 func ExampleGetInt() {

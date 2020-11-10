@@ -982,6 +982,14 @@ func (v *Value) GetBigint(keys ...string) *big.Int {
 	return value
 }
 
+func (v *Value) GetRawBytes(keys ...string) []byte {
+	v = v.Get(keys...)
+	if v == nil || v.Type() != TypeNumber || v.Type() != TypeString {
+		return nil
+	}
+	return s2b(v.s)
+}
+
 // GetUint returns uint value by the given keys path.
 //
 // Array indexes may be represented as decimal numbers in keys.

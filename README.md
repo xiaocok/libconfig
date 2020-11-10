@@ -8,9 +8,9 @@ A golang language library for reading libconfig file
 * The project is still in the development stage, please do not use it in the production environment.<br/>
 
 ## support
-* skip #
-* skip //
-* skip /* */
+* skip # comment
+* skip // comment
+* skip /* */ comment
 * scalarvalue
 * Hexadecimal data
 * big int
