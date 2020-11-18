@@ -350,24 +350,24 @@ func parseArray(s string, c *cache, depth int) (*Value, string, error) {
 }
 
 func parseObject(s string, c *cache, depth int) (*Value, string, error) {
+	//s = skipWS(s)
+	s = skipJunk(s)
+	if len(s) == 0 {
+		return nil, s, fmt.Errorf("missing };")
+	}
+
+	if s[0] == '}' { // };
+		s = s[1:]
 		//s = skipWS(s)
 		s = skipJunk(s)
-		if len(s) == 0 {
-			return nil, s, fmt.Errorf("missing };")
+		if s[0] != ';' {
+			return nil, s, fmt.Errorf("missing ;")
 		}
-
-		if s[0] == '}' { // };
-			s = s[1:]
-			//s = skipWS(s)
-			s = skipJunk(s)
-			if s[0] != ';' {
-				return nil, s, fmt.Errorf("missing ;")
-			}
-			v := c.getValue()
-			v.t = TypeObject
-			v.o.reset()
-			return v, s[1:], nil
-		}
+		v := c.getValue()
+		v.t = TypeObject
+		v.o.reset()
+		return v, s[1:], nil
+	}
 
 	o := c.getValue()
 	o.t = TypeObject
