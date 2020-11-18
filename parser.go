@@ -419,10 +419,13 @@ func parseObject(s string, c *cache, depth int) (*Value, string, error) {
 
 			continue
 		}
-		/*if s[0] == '}' {
-			return o, s[1:], nil
-		}*/
-		return nil, s, fmt.Errorf("missing ';' after object value")
+		//fix empty object, and here for close object, };
+		if s[0] == '}' {
+			s = s[1:]
+			s = skipJunk(s)
+			return o, s, nil
+		}
+		return nil, s, fmt.Errorf("missing ';' after object value, or missing '};' for close object")
 	}
 }
 
