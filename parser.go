@@ -69,7 +69,7 @@ func (p *Parser) Parse(s string) (*Value, error) {
 
 	v, tail, err := parseValue(b2s(p.b), &p.c, p.d, 0)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse JSON: %s; unparsed tail: %q", err, startEndString(tail))
+		return nil, fmt.Errorf("cannot parse libconfig: %s; unparsed tail: %q", err, startEndString(tail))
 	}
 	//tail = skipWS(tail)
 	tail = skipJunk(tail)
@@ -358,6 +358,11 @@ func parseArray(s string, c *cache, dir string, depth int) (*Value, string, erro
 
 		//s = skipWS(s)
 		s = skipJunk(s)
+		if s[0] == ']' || s[0] == ')' {
+			s = s[1:]
+			return a, s, nil
+		}
+
 		v, s, err = parseValue(s, c, dir, depth)
 		if err != nil {
 			return nil, s, fmt.Errorf("cannot parse array value: %s", err)
@@ -414,6 +419,11 @@ func parseObject(s string, c *cache, dir string, depth int) (*Value, string, err
 		/*if len(s) == 0 || s[0] != '"' {
 			return nil, s, fmt.Errorf(`cannot find opening '"" for object key`)
 		}*/
+		s, err = loadInclude(s, dir)
+		if err != nil {
+			return nil, s, err
+		}
+
 		kv.k, s, err = parseRawKey(s[0:])
 		if err != nil {
 			return nil, s, fmt.Errorf("cannot parse object key: %s", err)
@@ -462,6 +472,9 @@ func parseObject(s string, c *cache, dir string, depth int) (*Value, string, err
 }
 
 func loadInclude(s string, dir string) (string, error) {
+	if dir == "" {
+		return s, nil
+	}
 	if !(len(s) >= 8 && s[:8] == "@include") {
 		return s, nil
 	}
@@ -787,7 +800,7 @@ func (o *Object) Get(key string) *Value {
 	o.unescapeKeys()
 
 	for _, kv := range o.kvs {
-		fmt.Println(kv.k)
+		//fmt.Println(kv.k)
 		if kv.k == key {
 			return kv.v
 		}
