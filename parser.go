@@ -28,7 +28,9 @@ package libconfig
 import (
 	"fmt"
 	"github.com/gitteamer/libconfig/fastfloat"
+	"io/ioutil"
 	"math/big"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"unicode/utf16"
@@ -43,6 +45,9 @@ import (
 type Parser struct {
 	// b contains working copy of the string to be parsed.
 	b []byte
+
+	// the file dir path for parse
+	d string
 
 	// c is a cache for json values.
 	c cache
@@ -62,7 +67,7 @@ func (p *Parser) Parse(s string) (*Value, error) {
 	p.b = append(p.b[:0], s...)
 	p.c.reset()
 
-	v, tail, err := parseValue(b2s(p.b), &p.c, 0)
+	v, tail, err := parseValue(b2s(p.b), &p.c, p.d, 0)
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse JSON: %s; unparsed tail: %q", err, startEndString(tail))
 	}
@@ -83,6 +88,21 @@ func (p *Parser) Parse(s string) (*Value, error) {
 // Use Scanner if a stream of JSON values must be parsed.
 func (p *Parser) ParseBytes(b []byte) (*Value, error) {
 	return p.Parse(b2s(b))
+}
+
+// ParseFile for parse a file
+//
+// for @include scene, use ParseFile
+//
+// path is config file path
+func (p *Parser) ParseFile(path string) (*Value, error) {
+	b, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read config file error: %s", err.Error())
+	}
+
+	p.d = filepath.Dir(path)
+	return p.ParseBytes(b)
 }
 
 type cache struct {
@@ -214,7 +234,7 @@ func isArrayEnd(s string) (bool, string) {
 // MaxDepth is the maximum depth for nested JSON.
 const MaxDepth = 300
 
-func parseValue(s string, c *cache, depth int) (*Value, string, error) {
+func parseValue(s string, c *cache, dir string, depth int) (*Value, string, error) {
 	if len(s) == 0 {
 		return nil, s, fmt.Errorf("cannot parse empty string")
 	}
@@ -224,14 +244,14 @@ func parseValue(s string, c *cache, depth int) (*Value, string, error) {
 	}
 
 	if s[0] == '{' {
-		v, tail, err := parseObject(s[1:], c, depth)
+		v, tail, err := parseObject(s[1:], c, dir, depth)
 		if err != nil {
 			return nil, tail, fmt.Errorf("cannot parse object: %s", err)
 		}
 		return v, tail, nil
 	}
 	if s[0] == '[' || s[0] == '(' {
-		v, tail, err := parseArray(s[1:], c, depth)
+		v, tail, err := parseArray(s[1:], c, dir, depth)
 		if err != nil {
 			return nil, tail, fmt.Errorf("cannot parse array: %s", err)
 		}
@@ -272,6 +292,12 @@ func parseValue(s string, c *cache, depth int) (*Value, string, error) {
 		}
 		return valueNull, s[len("null"):], nil
 	}
+
+	var err error
+	s, err = loadInclude(s, dir)
+	if err != nil {
+		return nil, s, err
+	}
 	/*if s[0:2] == "/*" {
 		tail, err := removeAnnotation(s)
 		if err != nil {
@@ -290,7 +316,7 @@ func parseValue(s string, c *cache, depth int) (*Value, string, error) {
 	return v, tail, nil
 }
 
-func parseArray(s string, c *cache, depth int) (*Value, string, error) {
+func parseArray(s string, c *cache, dir string, depth int) (*Value, string, error) {
 	//s = skipWS(s)
 	s = skipJunk(s)
 	if len(s) == 0 {
@@ -317,6 +343,12 @@ func parseArray(s string, c *cache, depth int) (*Value, string, error) {
 		return v, s[1:], nil
 	}
 
+	var err error
+	s, err = loadInclude(s, dir)
+	if err != nil {
+		return nil, s, err
+	}
+
 	a := c.getValue()
 	a.t = TypeArray
 	a.a = a.a[:0]
@@ -326,7 +358,7 @@ func parseArray(s string, c *cache, depth int) (*Value, string, error) {
 
 		//s = skipWS(s)
 		s = skipJunk(s)
-		v, s, err = parseValue(s, c, depth)
+		v, s, err = parseValue(s, c, dir, depth)
 		if err != nil {
 			return nil, s, fmt.Errorf("cannot parse array value: %s", err)
 		}
@@ -349,7 +381,7 @@ func parseArray(s string, c *cache, depth int) (*Value, string, error) {
 	}
 }
 
-func parseObject(s string, c *cache, depth int) (*Value, string, error) {
+func parseObject(s string, c *cache, dir string, depth int) (*Value, string, error) {
 	//s = skipWS(s)
 	s = skipJunk(s)
 	if len(s) == 0 {
@@ -396,7 +428,7 @@ func parseObject(s string, c *cache, depth int) (*Value, string, error) {
 		// Parse value
 		//s = skipWS(s)
 		s = skipJunk(s)
-		kv.v, s, err = parseValue(s, c, depth)
+		kv.v, s, err = parseValue(s, c, dir, depth)
 		if err != nil {
 			return nil, s, fmt.Errorf("cannot parse object value: %s", err)
 		}
@@ -427,6 +459,44 @@ func parseObject(s string, c *cache, depth int) (*Value, string, error) {
 		}
 		return nil, s, fmt.Errorf("missing ';' after object value, or missing '};' for close object")
 	}
+}
+
+func loadInclude(s string, dir string) (string, error) {
+	if !(len(s) >= 8 && s[:8] == "@include") {
+		return s, nil
+	}
+
+	s = s[8:]
+	s = skipJunk(s)
+
+	if s[0] == '"' {
+		s = s[1:]
+		cnt := len(s)
+		var path string
+
+		for i := 0; i < cnt; i++ {
+			if s[i] == '"' {
+				path = s[:i]
+				s = s[i+1:]
+				break
+			}
+		}
+
+		var tmp string
+		files := scanMatch(dir + "/" + path)
+		for _, file := range files {
+			data, err := ioutil.ReadFile(file)
+			if err != nil {
+				return s, fmt.Errorf("read include file path: %s, error: %s", file, err.Error())
+			}
+
+			tmp = tmp + "\r\n" + string(data)
+		}
+
+		s = tmp + s
+	}
+
+	return s, nil
 }
 
 func escapeString(dst []byte, s string) []byte {

@@ -1,6 +1,7 @@
 package libconfig
 
 import (
+	"log"
 	"testing"
 )
 
@@ -27,4 +28,16 @@ func TestStartEndString(t *testing.T) {
 
 	f(getString(maxStartEndStringLen+1), "abcdefghijklmnopqrstuvwxyzabcdefghijklmn...pqrstuvwxyzabcdefghijklmnopqrstuvwxyzabc")
 	f(getString(100*maxStartEndStringLen), "abcdefghijklmnopqrstuvwxyzabcdefghijklmn...efghijklmnopqrstuvwxyzabcdefghijklmnopqr")
+}
+
+func TestMatchFile(t *testing.T) {
+	log.Println(matchFile("test.cfg", "test*.cfg"))  //true
+	log.Println(matchFile("test1.cfg", "test*.cfg")) //true
+	log.Println(matchFile("test.cfg", "*.cfg"))      //true
+	log.Println(matchFile("test.conf", "*.cfg"))     //false
+	log.Println(matchFile("test.conf", "test.*"))    //true
+	log.Println(matchFile("test.cfg", "test.*"))     //true
+
+	log.Println(matchFile("test1_demo2_example3.cfg", "test*demo*example.cfg"))  //false
+	log.Println(matchFile("test1_demo2_example3.cfg", "test*demo*example*.cfg")) //true
 }

@@ -1,16 +1,16 @@
-package libconfig_test
+package main
 
 import (
 	"fmt"
 	"github.com/gitteamer/libconfig"
 	"io/ioutil"
+	"log"
 )
 
-func ExampleParseBytes() {
+func ParseBytes() {
 	data, err := ioutil.ReadFile("testdata/demo.cfg")
 	if err != nil {
-		fmt.Println("read config file error:", err.Error())
-		return
+		log.Fatal("read config file error: %s", err.Error())
 	}
 
 	version := libconfig.GetString(data, "version")
@@ -36,7 +36,7 @@ func ExampleParseBytes() {
 	books_1_qty := libconfig.GetInt(data, "application", "books", "1", "qty")
 
 	misc_pi := libconfig.GetFloat64(data, "application", "misc", "pi")
-	misc_bigint := libconfig.GetBigint(data, "application", "misc", "bigint") //not support now
+	misc_bigint := libconfig.GetBigint(data, "application", "misc", "bigint")
 	misc_columns_0 := libconfig.GetString(data, "application", "misc", "columns", "0")
 	misc_columns_1 := libconfig.GetString(data, "application", "misc", "columns", "1")
 	misc_columns_2 := libconfig.GetString(data, "application", "misc", "columns", "2")
@@ -100,39 +100,4 @@ func ExampleParseBytes() {
 	// misc_columns_2 = MI
 	// misc_bitmask = 8131
 	// misc_bitmask_hex = 0x1FC3
-}
-
-func ExampleGetString() {
-
-}
-
-func ExampleGetInt() {
-	data := []byte(`{"foo": [233,true, {"bar": [2343]} ]}`)
-
-	n1 := libconfig.GetInt(data, "foo", "0")
-	fmt.Printf("data.foo[0] = %d\n", n1)
-
-	n2 := libconfig.GetInt(data, "foo", "2", "bar", "0")
-	fmt.Printf("data.foo[2].bar[0] = %d\n", n2)
-
-	// Output:
-	// data.foo[0] = 233
-	// data.foo[2].bar[0] = 2343
-}
-
-func ExampleExists() {
-	data := []byte(`{"foo": [1.23,{"bar":33,"baz":null}]}`)
-
-	fmt.Printf("exists(data.foo) = %v\n", libconfig.Exists(data, "foo"))
-	fmt.Printf("exists(data.foo[0]) = %v\n", libconfig.Exists(data, "foo", "0"))
-	fmt.Printf("exists(data.foo[1].baz) = %v\n", libconfig.Exists(data, "foo", "1", "baz"))
-	fmt.Printf("exists(data.foobar) = %v\n", libconfig.Exists(data, "foobar"))
-	fmt.Printf("exists(data.foo.bar) = %v\n", libconfig.Exists(data, "foo", "bar"))
-
-	// Output:
-	// exists(data.foo) = true
-	// exists(data.foo[0]) = true
-	// exists(data.foo[1].baz) = true
-	// exists(data.foobar) = false
-	// exists(data.foo.bar) = false
 }

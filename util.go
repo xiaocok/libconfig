@@ -27,8 +27,11 @@ package libconfig
 
 import (
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"reflect"
 	"strconv"
+	"strings"
 	"unsafe"
 )
 
@@ -66,4 +69,59 @@ func hex2dec(val string) int {
 
 func dec2hex(n int) string {
 	return fmt.Sprintf("0x%X", n)
+}
+
+func scanMatch(path string) []string {
+	dir := filepath.Dir(path)
+	filenameMatching := filepath.Base(path)
+
+	return scanMatchDir(dir, filenameMatching)
+}
+
+func matchFile(filename string, matching string) bool {
+	matchs := strings.Split(matching, "*")
+
+	if matchs[0] != "" {
+		if !strings.HasPrefix(filename, matchs[0]) {
+			return false
+		}
+
+		filename = strings.TrimPrefix(filename, matchs[0])
+		matchs = matchs[1:]
+	}
+	if matchs[len(matchs)-1] != "" {
+		if !strings.HasSuffix(filename, matchs[len(matchs)-1]) {
+			return false
+		}
+
+		filename = strings.TrimSuffix(filename, matchs[len(matchs)-1])
+		matchs = matchs[:len(matchs)-1]
+	}
+
+	for _, match := range matchs {
+		n := strings.Index(filename, match)
+		if n == -1 {
+			return false
+		}
+
+		filename = filename[n:]
+	}
+
+	return true
+}
+
+func scanMatchDir(path string, matching string) (matchFiles []string) {
+
+	files, _ := ioutil.ReadDir(path)
+	for _, file := range files {
+		if file.IsDir() {
+			//scanDir(path + "/" + file.Name(), matching)
+			continue
+		}
+
+		if matchFile(file.Name(), matching) {
+			matchFiles = append(matchFiles, path+"/"+file.Name())
+		}
+	}
+	return
 }

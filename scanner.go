@@ -90,7 +90,7 @@ func (sc *Scanner) Next() bool {
 	}
 
 	sc.c.reset()
-	v, tail, err := parseValue(sc.s, &sc.c, 0)
+	v, tail, err := parseValue(sc.s, &sc.c, "", 0)
 	if err != nil {
 		sc.err = err
 		return false
