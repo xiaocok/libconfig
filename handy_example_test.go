@@ -11,7 +11,7 @@ import (
 func ExampleParseBytes() {
 	data, err := ioutil.ReadFile("testdata/demo.cfg")
 	if err != nil {
-		log.Fatal("read config file error: %s", err.Error())
+		log.Fatal("read config file error: ", err.Error())
 	}
 
 	fmt.Printf("version = %s\n", libconfig.GetString(data, "version"))
@@ -83,7 +83,9 @@ func ExampleParseInclude() {
 	}
 
 	fmt.Printf("books[0].title=%s\n", v.GetArray("books")[0].GetStringBytes("title"))
-	fmt.Printf("books[0].title=%s\n", v.GetArray("books")[2].GetStringBytes("author"))
+	fmt.Printf("books[0].title=%s\n", v.Get("books", "0").GetStringBytes("title"))
+	fmt.Printf("books[0].title=%s\n", v.Get("books").Get("0").GetStringBytes("title"))
+	fmt.Printf("books[0].author=%s\n", v.GetArray("books")[2].GetStringBytes("author"))
 	fmt.Printf("books[0].extra1=%s\n", v.GetArray("books")[0].GetStringBytes("extra1"))
 	fmt.Printf("books[3].extra1=%s\n", v.GetArray("books")[3].GetStringBytes("extra1"))
 	fmt.Printf("books[3].extra2=%d\n", v.GetArray("books")[3].GetInt("extra2"))
@@ -91,9 +93,50 @@ func ExampleParseInclude() {
 
 	// Output:
 	// books[0].title=Treasure Island
-	// books[0].title=Robert A. Heinlein
+	// books[0].title=Treasure Island
+	// books[0].title=Treasure Island
+	// books[0].author=Robert A. Heinlein
 	// books[0].extra1=
 	// books[3].extra1=bar
 	// books[3].extra2=12345
 	// books[3].extra2=12345
+}
+
+func ExampleMix()  {
+	data := []byte(`foo=([{bar=1234; baz=0;}],)`)
+
+	// handy parse
+	fmt.Printf("foo[0][0].bar = %d\n", libconfig.GetInt(data, "foo", "0", "0", "bar"))
+
+	// object parse
+	var (
+		p libconfig.Parser
+		v *libconfig.Value
+	)
+
+	v, err := p.ParseBytes(data)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// use get with multiple parameters and check error
+	item, err := v.Get("foo", "0", "0", "bar").Int()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Printf("foo[0][0].bar = %d\n", item)
+
+	// use get with call chaining
+	fmt.Printf("foo[0][0].bar = %d\n", v.Get("foo").Get("0").Get("0").GetInt("bar"))
+
+	// use get list object
+	foo := v.GetArray("foo")
+	first_list := foo[0].GetArray()
+	fmt.Printf("foo[0][0].bar = %s\n", first_list[0].GetObject().Get("bar"))
+
+	// Output:
+	// foo[0][0].bar = 1234
+	// foo[0][0].bar = 1234
+	// foo[0][0].bar = 1234
+	// foo[0][0].bar = 1234
 }

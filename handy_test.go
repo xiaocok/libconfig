@@ -4,64 +4,8 @@ import (
 	"testing"
 )
 
-/*func TestGetStringConcurrent(t *testing.T) {
-	const concurrency = 4
-	data := []byte(largeFixture)
-
-	ch := make(chan error, concurrency)
-
-	for i := 0; i < concurrency; i++ {
-		go func() {
-			s := GetString(data, "non-existing-key")
-			if s != "" {
-				ch <- fmt.Errorf("unexpected non-empty string got: %q", s)
-			}
-			ch <- nil
-		}()
-	}
-
-	for i := 0; i < concurrency; i++ {
-		select {
-		case <-time.After(time.Second * 5):
-			t.Fatalf("timeout")
-		case err := <-ch:
-			if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-		}
-	}
-}
-
-func TestGetBytesConcurrent(t *testing.T) {
-	const concurrency = 4
-	data := []byte(largeFixture)
-
-	ch := make(chan error, concurrency)
-
-	for i := 0; i < concurrency; i++ {
-		go func() {
-			b := GetBytes(data, "non-existing-key")
-			if b != nil {
-				ch <- fmt.Errorf("unexpected non-empty string got: %q", b)
-			}
-			ch <- nil
-		}()
-	}
-
-	for i := 0; i < concurrency; i++ {
-		select {
-		case <-time.After(time.Second * 5):
-			t.Fatalf("timeout")
-		case err := <-ch:
-			if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-		}
-	}
-}*/
-
 func TestGetString(t *testing.T) {
-	data := []byte(`{"foo":"bar", "baz": 1234}`)
+	data := []byte(`foo="bar"; baz=1234;`)
 
 	// normal path
 	s := GetString(data, "foo")
@@ -89,7 +33,7 @@ func TestGetString(t *testing.T) {
 }
 
 func TestGetBytes(t *testing.T) {
-	data := []byte(`{"foo":"bar", "baz": 1234}`)
+	data := []byte(`foo="bar"; baz: 1234;`)
 
 	// normal path
 	b := GetBytes(data, "foo")
@@ -117,7 +61,7 @@ func TestGetBytes(t *testing.T) {
 }
 
 func TestGetInt(t *testing.T) {
-	data := []byte(`{"foo":"bar", "baz": 1234}`)
+	data := []byte(`foo="bar"; baz=1234;`)
 
 	// normal path
 	n := GetInt(data, "baz")
@@ -145,7 +89,7 @@ func TestGetInt(t *testing.T) {
 }
 
 func TestGetFloat64(t *testing.T) {
-	data := []byte(`{"foo":"bar", "baz": 12.34}`)
+	data := []byte(`foo="bar"; baz= 12.34;`)
 
 	// normal path
 	f := GetFloat64(data, "baz")
@@ -173,7 +117,7 @@ func TestGetFloat64(t *testing.T) {
 }
 
 func TestGetBool(t *testing.T) {
-	data := []byte(`{"foo":"bar", "baz": true}`)
+	data := []byte(`foo="bar"; baz=true;`)
 
 	// normal path
 	b := GetBool(data, "baz")
@@ -201,7 +145,7 @@ func TestGetBool(t *testing.T) {
 }
 
 func TestExists(t *testing.T) {
-	data := []byte(`{"foo": [{"bar": 1234, "baz": 0}]}`)
+	data := []byte(`foo=[{bar= 1234; baz=0;}];`)
 
 	if !Exists(data, "foo") {
 		t.Fatalf("cannot find foo")
@@ -226,13 +170,13 @@ func TestExists(t *testing.T) {
 		t.Fatalf("found unexpected foo.bar")
 	}
 
-	if Exists([]byte(`invalid JSON`), "foo", "bar") {
+	if Exists([]byte(`invalid libconfig`), "foo", "bar") {
 		t.Fatalf("Exists returned true on invalid json")
 	}
 }
 
 func TestParse(t *testing.T) {
-	v, err := Parse(`{"foo": "bar"}`)
+	v, err := Parse(`foo="bar";`)
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
@@ -243,18 +187,18 @@ func TestParse(t *testing.T) {
 }
 
 func TestParseBytes(t *testing.T) {
-	v, err := ParseBytes([]byte(`{"foo": "bar"}`))
+	v, err := ParseBytes([]byte(`foo="bar"`))
 	if err != nil {
 		t.Fatalf("unexpected error: %s", err)
 	}
 	str := v.String()
-	if str != `{"foo":"bar"}` {
-		t.Fatalf("unexpected value parsed: %q; want %q", str, `{"foo":"bar"}`)
+	if str != `foo="bar"` {
+		t.Fatalf("unexpected value parsed: %q; want %q", str, `foo="bar"`)
 	}
 }
 
 func TestMustParse(t *testing.T) {
-	s := `{"foo":"bar"}`
+	s := `{"foo"="bar"}`
 	v := MustParse(s)
 	str := v.String()
 	if str != s {

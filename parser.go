@@ -800,7 +800,6 @@ func (o *Object) Get(key string) *Value {
 	o.unescapeKeys()
 
 	for _, kv := range o.kvs {
-		//fmt.Println(kv.k)
 		if kv.k == key {
 			return kv.v
 		}
