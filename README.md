@@ -179,7 +179,7 @@ import (
     "github.com/gitteamer/libconfig"
 )
 func main()  {
-	data := []byte(`my_array = ["CT","CA","TX","NV","FL"];`)
+    data := []byte(`my_array = ["CT","CA","TX","NV","FL"];`)
 
     // handy parse
     fmt.Printf("my_array[0] = %s\n", libconfig.GetString(data, "my_array", "0"))
