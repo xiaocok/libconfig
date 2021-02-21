@@ -20,310 +20,231 @@ A golang language library for reading libconfig file
 * @include
 
 ## example
-### parse strings
-```go
-package main
-import (
-    "fmt"
-    "github.com/gitteamer/libconfig"
-)
-func main()  {
-    data := []byte(`foo="bar"; baz=1234;`)
-    foo := libconfig.GetString(data, "foo")
-    fmt.Println("foo = %s\n", foo)
-}
+### parse bytes
+```
+data := []byte(`foo="bar"; baz=1234;`)
+foo := libconfig.GetString(data, "foo")
+fmt.Println("foo = %s\n", foo)
 ```
 
-### parse file
-```go
-package main
-import (
-    "fmt"
-    "io/ioutil"
-    "log"
-    "github.com/gitteamer/libconfig"
-)
-func main()  {
-    data, err := ioutil.ReadFile("testdata/demo.cfg")
-    if err != nil {
-        log.Fatal("read config file error: ", err.Error())
-    }
-    
-    fmt.Printf("version = %s\n", libconfig.GetString(data, "version"))
+### parse from file
+```
+data, err := ioutil.ReadFile("testdata/demo.cfg")
+if err != nil {
+    log.Fatal("read config file error: ", err.Error())
 }
+
+fmt.Printf("version = %s\n", libconfig.GetString(data, "version"))
 ```
 
 ### parse with object
-> #### strings
-```go
-package main
-import (
-    "fmt"
-    "log"
-    "github.com/gitteamer/libconfig"
-)
-func main()  {
-    var p libconfig.Parser
-    
-    v, err := p.Parse(`foo="bar"; baz=1234;`)
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    fmt.Printf("foo = %s\n", v.Get("foo").String())
-    fmt.Printf("foo = %s\n", string(v.GetStringBytes("foo")))
+from strings
+```
+var p libconfig.Parser
+
+v, err := p.Parse(`foo="bar"; baz=1234;`)
+if err != nil {
+    log.Fatal(err)
 }
+
+fmt.Printf("foo = %s\n", v.Get("foo").String())
+fmt.Printf("foo = %s\n", string(v.GetStringBytes("foo")))
 ```
 
-> #### file
-```go
-package main
-import (
-    "fmt"
-    "log"
-    "github.com/gitteamer/libconfig"
-)
-func main()  {
-    var p libconfig.Parser
-    
-    v, err := p.ParseFile("testdata/example4.cfg")
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    fmt.Printf("books[0].title=%s\n", v.GetArray("books")[0].GetStringBytes("title"))
+from file
+```
+var p libconfig.Parser
+
+v, err := p.ParseFile("testdata/example4.cfg")
+if err != nil {
+    log.Fatal(err)
 }
+
+fmt.Printf("books[0].title=%s\n", v.GetArray("books")[0].GetStringBytes("title"))
 ```
 
 ## parse element
-### scalarvalue、Hexadecimal data、big int
-```go
-package main
-import (
-    "fmt"
-    "github.com/gitteamer/libconfig"
-)
-func main()  {
-    data := []byte(`foo="bar"; baz=1234; bigint=9223372036854775807L; float=1.0; bool=false;`)
-    
-    // string
-    fmt.Printf("foo = %s\n", libconfig.GetString(data, "foo"))
-    
-    // bytes
-    fmt.Printf("foo = %s\n", libconfig.GetBytes(data, "foo"))
-    
-    // int
-    fmt.Printf("baz = %d\n", libconfig.GetInt(data, "baz"))
-    
-    // hex value
-    fmt.Printf("baz = %s\n", libconfig.GetHex(data, "baz"))
-    
-    //big int
-    fmt.Printf("bigint = %s\n", libconfig.GetBigint(data, "bigint").String())
-    
-    // float 64
-    fmt.Printf("float = %v\n", libconfig.GetFloat64(data, "float"))
-    
-    // bool
-    fmt.Printf("bool = %v\n", libconfig.GetBool(data, "bool"))
-}
+scalarvalue、Hexadecimal data、big int
+```
+data := []byte(`foo="bar"; baz=1234; bigint=9223372036854775807L; float=1.0; bool=false;`)
+
+// string
+fmt.Printf("foo = %s\n", libconfig.GetString(data, "foo"))
+
+// bytes
+fmt.Printf("foo = %s\n", libconfig.GetBytes(data, "foo"))
+
+// int
+fmt.Printf("baz = %d\n", libconfig.GetInt(data, "baz"))
+
+// hex value
+fmt.Printf("baz = %s\n", libconfig.GetHex(data, "baz"))
+
+//big int
+fmt.Printf("bigint = %s\n", libconfig.GetBigint(data, "bigint").String())
+
+// float 64
+fmt.Printf("float = %v\n", libconfig.GetFloat64(data, "float"))
+
+// bool
+fmt.Printf("bool = %v\n", libconfig.GetBool(data, "bool"))
 ```
 
 ### group
-```go
-package main
-import (
-    "fmt"
-    "log"
-    "github.com/gitteamer/libconfig"
+```
+data := []byte(`foo={bar= 1234; baz=0;};`)
+
+// handy parse
+fmt.Printf("foo.bar = %s\n", libconfig.GetString(data, "foo", "bar"))
+
+//object parse
+var (
+    p libconfig.Parser
+    v *libconfig.Value    
 )
-func main()  {
-    data := []byte(`foo={bar= 1234; baz=0;};`)
-    
-    // handy parse
-    fmt.Printf("foo.bar = %s\n", libconfig.GetString(data, "foo", "bar"))
-
-    //object parse
-    var (
-        p libconfig.Parser
-        v *libconfig.Value    
-    )
-    v, err := p.ParseBytes(data)
-    if err != nil {
-    	log.Fatal(err)
-    }
-
-    // use get with multiple parameters and check error
-    item, err := v.Get("foo", "bar").StringBytes()
-    if err != nil {
-    	log.Fatal(err)
-    }
-    fmt.Printf("foo.bar = %s\n", string(item))
-    
-    // use get with call chaining
-    fmt.Printf("foo.bar = %s\n", string(v.Get("foo").Get("bar").GetStringBytes()))
-    
-    // use get array object
-    foo := v.GetObject("foo")
-    bar := foo.Get("bar")
-    fmt.Printf("my_array[0] = %s\n", bar.String())
+v, err := p.ParseBytes(data)
+if err != nil {
+    log.Fatal(err)
 }
+
+// use get with multiple parameters and check error
+item, err := v.Get("foo", "bar").StringBytes()
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("foo.bar = %s\n", string(item))
+
+// use get with call chaining
+fmt.Printf("foo.bar = %s\n", string(v.Get("foo").Get("bar").GetStringBytes()))
+
+// use get array object
+foo := v.GetObject("foo")
+bar := foo.Get("bar")
+fmt.Printf("my_array[0] = %s\n", bar.String())
 ```
 
 ### array
-```go
-package main
-import (
-    "fmt"
-    "log"
-    "github.com/gitteamer/libconfig"
+```
+data := []byte(`my_array = ["CT","CA","TX","NV","FL"];`)
+
+// handy parse
+fmt.Printf("my_array[0] = %s\n", libconfig.GetString(data, "my_array", "0"))
+
+// object parse
+var (
+    p libconfig.Parser
+    v *libconfig.Value
 )
-func main()  {
-    data := []byte(`my_array = ["CT","CA","TX","NV","FL"];`)
 
-    // handy parse
-    fmt.Printf("my_array[0] = %s\n", libconfig.GetString(data, "my_array", "0"))
-
-    // object parse
-    var (
-        p libconfig.Parser
-        v *libconfig.Value
-    )
-    
-    v, err := p.ParseBytes(data)
-    if err != nil {
-          log.Fatal(err)
-    }
-
-    // use get with multiple parameters and check error
-    item, err := v.Get("my_array", "0").StringBytes()
-    if err != nil {
-          log.Fatal(err)
-    }
-    fmt.Printf("my_array[0] = %s\n", string(item))
-    
-    // use get with call chaining
-    fmt.Printf("my_array[0] = %s\n", v.Get("my_array").Get("0").String())
-    
-    // use get array object
-    my_array := v.GetArray("my_array")
-    fmt.Printf("my_array[0] = %s\n", my_array[0].String())
+v, err := p.ParseBytes(data)
+if err != nil {
+      log.Fatal(err)
 }
+
+// use get with multiple parameters and check error
+item, err := v.Get("my_array", "0").StringBytes()
+if err != nil {
+      log.Fatal(err)
+}
+fmt.Printf("my_array[0] = %s\n", string(item))
+
+// use get with call chaining
+fmt.Printf("my_array[0] = %s\n", v.Get("my_array").Get("0").String())
+
+// use get array object
+my_array := v.GetArray("my_array")
+fmt.Printf("my_array[0] = %s\n", my_array[0].String())
 ```
 
 ### list
-```go
-package main
-import (
-    "fmt"
-    "log"
-    "github.com/gitteamer/libconfig"
+```
+data := []byte(`list = ( ( "abc", 123, true ), 1.234, ( /* an empty list */) );`)
+
+// handy parse
+fmt.Printf("list[0][0] = %s\n", libconfig.GetString(data, "list", "0", "0"))
+
+// object parse
+var (
+    p libconfig.Parser
+    v *libconfig.Value
 )
-func main() {
-    data := []byte(`list = ( ( "abc", 123, true ), 1.234, ( /* an empty list */) );`)
-    
-    // handy parse
-    fmt.Printf("list[0][0] = %s\n", libconfig.GetString(data, "list", "0", "0"))
-    
-    // object parse
-    var (
-        p libconfig.Parser
-        v *libconfig.Value
-    )
-    
-    v, err := p.ParseBytes(data)
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    // use get with multiple parameters and check error
-    item, err := v.Get("list", "0", "0").StringBytes()
-    if err != nil {
-        log.Fatal(err)
-    }
-    fmt.Printf("list[0][0] = %s\n", string(item))
-    
-    // use get with call chaining
-    fmt.Printf("list[0][0] = %s\n", v.Get("list").Get("0").Get("0").String())
-    
-    // use get array object
-    list := v.GetArray("list")
-    first_array := list[0].GetArray()
-    fmt.Printf("list[0][0] = %s\n", first_array[0].String())
+
+v, err := p.ParseBytes(data)
+if err != nil {
+    log.Fatal(err)
 }
+
+// use get with multiple parameters and check error
+item, err := v.Get("list", "0", "0").StringBytes()
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("list[0][0] = %s\n", string(item))
+
+// use get with call chaining
+fmt.Printf("list[0][0] = %s\n", v.Get("list").Get("0").Get("0").String())
+
+// use get array object
+list := v.GetArray("list")
+first_array := list[0].GetArray()
+fmt.Printf("list[0][0] = %s\n", first_array[0].String())
 ```
 
 ### mix
-```go
-package main
-import (
-    "fmt"
-    "log"
-    "github.com/gitteamer/libconfig"
+```
+data := []byte(`foo=([{bar=1234; baz=0;}],)`)
+
+// handy parse
+fmt.Printf("foo[0][0].bar = %d\n", libconfig.GetInt(data, "foo", "0", "0", "bar"))
+
+// object parse
+var (
+    p libconfig.Parser
+    v *libconfig.Value
 )
-func main() {
-    data := []byte(`foo=([{bar=1234; baz=0;}],)`)
-    
-    // handy parse
-    fmt.Printf("foo[0][0].bar = %d\n", libconfig.GetInt(data, "foo", "0", "0", "bar"))
-    
-    // object parse
-    var (
-        p libconfig.Parser
-        v *libconfig.Value
-    )
-    
-    v, err := p.ParseBytes(data)
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    // use get with multiple parameters and check error
-    item, err := v.Get("foo", "0", "0", "bar").Int()
-    if err != nil {
-        log.Fatal(err)
-    }
-    fmt.Printf("foo[0][0].bar = %d\n", item)
-    
-    // use get with call chaining
-    fmt.Printf("foo[0][0].bar = %d\n", v.Get("foo").Get("0").Get("0").GetInt("bar"))
-    
-    // use get list object
-    foo := v.GetArray("foo")
-    first_list := foo[0].GetArray()
-    fmt.Printf("foo[0][0].bar = %s\n", first_list[0].GetObject().Get("bar"))
+
+v, err := p.ParseBytes(data)
+if err != nil {
+    log.Fatal(err)
 }
+
+// use get with multiple parameters and check error
+item, err := v.Get("foo", "0", "0", "bar").Int()
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("foo[0][0].bar = %d\n", item)
+
+// use get with call chaining
+fmt.Printf("foo[0][0].bar = %d\n", v.Get("foo").Get("0").Get("0").GetInt("bar"))
+
+// use get list object
+foo := v.GetArray("foo")
+first_list := foo[0].GetArray()
+fmt.Printf("foo[0][0].bar = %s\n", first_list[0].GetObject().Get("bar"))
 ```
 
 ### include
-```go
-package main
-import (
-    "fmt"
-    "log"
-    "github.com/gitteamer/libconfig"
-)
-func main(){
-    var p libconfig.Parser
-    
-    // testdata/example4.cfg
-    v, err := p.ParseFile("testdata/example4.cfg")
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    // @include "cfg_includes/book*.cfg"
-    fmt.Printf("books[0].title=%s\n", v.GetArray("books")[0].GetStringBytes("title"))
-    fmt.Printf("books[0].title=%s\n", v.Get("books", "0").GetStringBytes("title"))
-    fmt.Printf("books[0].title=%s\n", v.Get("books").Get("0").GetStringBytes("title"))
-    fmt.Printf("books[0].author=%s\n", v.GetArray("books")[2].GetStringBytes("author"))
-    
-    //@include "cfg_includes/cfg_subincludes/*.cfg"	
-    fmt.Printf("books[0].extra1=%s\n", v.GetArray("books")[0].GetStringBytes("extra1"))
-    fmt.Printf("books[3].extra1=%s\n", v.GetArray("books")[3].GetStringBytes("extra1"))
-    fmt.Printf("books[3].extra2=%d\n", v.GetArray("books")[3].GetInt("extra2"))
-    fmt.Printf("books[3].extra2=%d\n", v.GetInt("books", "3", "extra2"))
+```
+var p libconfig.Parser
+
+// testdata/example4.cfg
+v, err := p.ParseFile("testdata/example4.cfg")
+if err != nil {
+    log.Fatal(err)
 }
+
+// @include "cfg_includes/book*.cfg"
+fmt.Printf("books[0].title=%s\n", v.GetArray("books")[0].GetStringBytes("title"))
+fmt.Printf("books[0].title=%s\n", v.Get("books", "0").GetStringBytes("title"))
+fmt.Printf("books[0].title=%s\n", v.Get("books").Get("0").GetStringBytes("title"))
+fmt.Printf("books[0].author=%s\n", v.GetArray("books")[2].GetStringBytes("author"))
+
+//@include "cfg_includes/cfg_subincludes/*.cfg"	
+fmt.Printf("books[0].extra1=%s\n", v.GetArray("books")[0].GetStringBytes("extra1"))
+fmt.Printf("books[3].extra1=%s\n", v.GetArray("books")[3].GetStringBytes("extra1"))
+fmt.Printf("books[3].extra2=%d\n", v.GetArray("books")[3].GetInt("extra2"))
+fmt.Printf("books[3].extra2=%d\n", v.GetInt("books", "3", "extra2"))
 ```
 
 ### a complex demo
