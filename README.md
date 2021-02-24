@@ -21,14 +21,14 @@ A golang language library for reading libconfig file
 
 ## example
 ### parse bytes
-```
+```go
 data := []byte(`foo="bar"; baz=1234;`)
 foo := libconfig.GetString(data, "foo")
 fmt.Println("foo = %s\n", foo)
 ```
 
 ### parse from file
-```
+```go
 data, err := ioutil.ReadFile("testdata/demo.cfg")
 if err != nil {
     log.Fatal("read config file error: ", err.Error())
@@ -39,7 +39,7 @@ fmt.Printf("version = %s\n", libconfig.GetString(data, "version"))
 
 ### parse with object
 from strings
-```
+```go
 var p libconfig.Parser
 
 v, err := p.Parse(`foo="bar"; baz=1234;`)
@@ -52,7 +52,7 @@ fmt.Printf("foo = %s\n", string(v.GetStringBytes("foo")))
 ```
 
 from file
-```
+```go
 var p libconfig.Parser
 
 v, err := p.ParseFile("testdata/example4.cfg")
@@ -65,7 +65,7 @@ fmt.Printf("books[0].title=%s\n", v.GetArray("books")[0].GetStringBytes("title")
 
 ## parse element
 scalarvalue、Hexadecimal data、big int
-```
+```go
 data := []byte(`foo="bar"; baz=1234; bigint=9223372036854775807L; float=1.0; bool=false;`)
 
 // string
@@ -91,7 +91,7 @@ fmt.Printf("bool = %v\n", libconfig.GetBool(data, "bool"))
 ```
 
 ### group
-```
+```go
 data := []byte(`foo={bar= 1234; baz=0;};`)
 
 // handy parse
@@ -124,7 +124,7 @@ fmt.Printf("my_array[0] = %s\n", bar.String())
 ```
 
 ### array
-```
+```go
 data := []byte(`my_array = ["CT","CA","TX","NV","FL"];`)
 
 // handy parse
@@ -157,7 +157,7 @@ fmt.Printf("my_array[0] = %s\n", my_array[0].String())
 ```
 
 ### list
-```
+```go
 data := []byte(`list = ( ( "abc", 123, true ), 1.234, ( /* an empty list */) );`)
 
 // handy parse
@@ -191,7 +191,7 @@ fmt.Printf("list[0][0] = %s\n", first_array[0].String())
 ```
 
 ### mix
-```
+```go
 data := []byte(`foo=([{bar=1234; baz=0;}],)`)
 
 // handy parse
@@ -225,7 +225,7 @@ fmt.Printf("foo[0][0].bar = %s\n", first_list[0].GetObject().Get("bar"))
 ```
 
 ### include
-```
+```go
 var p libconfig.Parser
 
 // testdata/example4.cfg
@@ -248,6 +248,43 @@ fmt.Printf("books[3].extra2=%d\n", v.GetInt("books", "3", "extra2"))
 ```
 
 ### a complex demo
+config
+```text
+# Example application configuration file
+
+version = "1.0";
+
+application:
+{
+  window:
+  {
+    title = "My Application";
+    size = { w = 640; h = 480; };
+    pos = { x = 350; y = 250; };
+  };
+
+  list = ( ( "abc", 123, true ), 1.234, ( /* an empty list */) );
+
+  books = ( { title  = "Treasure Island";
+              author = "Robert Louis Stevenson";
+              price  = 29.95;
+              qty    = 5; },
+            { title  = "Snow Crash";
+              author = "Neal Stephenson";
+              price  = 9.99;
+              qty    = 8; } );
+
+  misc:
+  {
+    pi = 3.141592654;
+    bigint = 9223372036854775807L;
+    columns = [ "Last Name", "First Name", "MI" ];
+    bitmask = 0x1FC3;
+  };
+};
+```
+
+code
 ```go
 package main
 import (
